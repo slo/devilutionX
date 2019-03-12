@@ -16,25 +16,16 @@ typedef struct _DSBUFFERDESC {
 DECLARE_INTERFACE_(IDirectSoundBuffer, IUnknown)
 {
 	// clang-format off
-	STDMETHOD(GetCaps)(THIS_ LPDSBCAPS pDSBufferCaps);
-	STDMETHOD(GetCurrentPosition)(THIS_ LPDWORD pdwCurrentPlayCursor, LPDWORD pdwCurrentWriteCursor);
-	STDMETHOD(GetFormat)(THIS_ LPWAVEFORMATEX pwfxFormat, DWORD dwSizeAllocated, LPDWORD pdwSizeWritten);
-	STDMETHOD(GetVolume)(THIS_ LPLONG plVolume);
-	STDMETHOD(GetPan)(THIS_ LPLONG plPan);
-	STDMETHOD(GetFrequency)(THIS_ LPDWORD pdwFrequency);
-	STDMETHOD(GetStatus)(THIS_ LPDWORD pdwStatus);
-	STDMETHOD(Initialize)(THIS_ LPDIRECTSOUND pDirectSound, LPCDSBUFFERDESC pcDSBufferDesc);
+	STDMETHOD(GetStatus)(THIS_ LPDWORD pdwStatus) PURE;
 	STDMETHOD(Lock)(THIS_ DWORD dwOffset, DWORD dwBytes, LPVOID *ppvAudioPtr1, LPDWORD pdwAudioBytes1,
-			LPVOID *ppvAudioPtr2, LPDWORD pdwAudioBytes2, DWORD dwFlags);
-	STDMETHOD(Play)(THIS_ DWORD dwReserved1, DWORD dwPriority, DWORD dwFlags);
-	STDMETHOD(SetCurrentPosition)(THIS_ DWORD dwNewPosition);
-	STDMETHOD(SetFormat)(THIS_ LPCWAVEFORMATEX pcfxFormat);
-	STDMETHOD(SetVolume)(THIS_ LONG lVolume);
-	STDMETHOD(SetPan)(THIS_ LONG lPan);
-	STDMETHOD(SetFrequency)(THIS_ DWORD dwFrequency);
-	STDMETHOD(Stop)(THIS);
-	STDMETHOD(Unlock)(THIS_ LPVOID pvAudioPtr1, DWORD dwAudioBytes1, LPVOID pvAudioPtr2, DWORD dwAudioBytes2);
-	STDMETHOD(Restore)(THIS);
+			LPVOID *ppvAudioPtr2, LPDWORD pdwAudioBytes2, DWORD dwFlags) PURE;
+	STDMETHOD(Play)(THIS_ DWORD dwReserved1, DWORD dwPriority, DWORD dwFlags) PURE;
+	STDMETHOD(SetFormat)(THIS_ LPCWAVEFORMATEX pcfxFormat) PURE;
+	STDMETHOD(SetVolume)(THIS_ LONG lVolume) PURE;
+	STDMETHOD(SetPan)(THIS_ LONG lPan) PURE;
+	STDMETHOD(Stop)(THIS) PURE;
+	STDMETHOD(Unlock)(THIS_ LPVOID pvAudioPtr1, DWORD dwAudioBytes1, LPVOID pvAudioPtr2, DWORD dwAudioBytes2) PURE;
+	STDMETHOD(Restore)(THIS) PURE;
 	// clang-format on
 };
 
@@ -42,6 +33,8 @@ DECLARE_INTERFACE_(IDirectSoundBuffer, IUnknown)
 #define DSBCAPS_STATIC 0x00000002
 #define DSBCAPS_CTRLPAN 0x00000040
 #define DSBCAPS_CTRLVOLUME 0x00000080
+
+#define DSSCL_EXCLUSIVE 0x00000003
 
 #define WAVE_FORMAT_PCM 1
 
@@ -80,14 +73,10 @@ typedef struct _DSCAPS {
 DECLARE_INTERFACE_(IDirectSound, IUnknown)
 {
 	// clang-format off
-	STDMETHOD(CreateSoundBuffer)(THIS_ LPCDSBUFFERDESC pcDSBufferDesc, LPDIRECTSOUNDBUFFER *ppDSBuffer, LPUNKNOWN pUnkOuter);
-	STDMETHOD(GetCaps)(THIS_ LPDSCAPS pDSCaps);
-	STDMETHOD(DuplicateSoundBuffer)(THIS_ LPDIRECTSOUNDBUFFER pDSBufferOriginal, LPDIRECTSOUNDBUFFER *ppDSBufferDuplicate);
-	STDMETHOD(SetCooperativeLevel)(THIS_ HWND hwnd, DWORD dwLevel);
-	STDMETHOD(Compact)(THIS);
-	STDMETHOD(GetSpeakerConfig)(THIS_ LPDWORD pdwSpeakerConfig);
-	STDMETHOD(SetSpeakerConfig)(THIS_ DWORD dwSpeakerConfig);
-	STDMETHOD(Initialize)(THIS_ LPCGUID pcGuidDevice);
+	STDMETHOD(CreateSoundBuffer)(THIS_ LPCDSBUFFERDESC pcDSBufferDesc, LPDIRECTSOUNDBUFFER *ppDSBuffer, LPUNKNOWN pUnkOuter) PURE;
+	STDMETHOD(GetCaps)(THIS_ LPDSCAPS pDSCaps) PURE;
+	STDMETHOD(DuplicateSoundBuffer)(THIS_ LPDIRECTSOUNDBUFFER pDSBufferOriginal, LPDIRECTSOUNDBUFFER *ppDSBufferDuplicate) PURE;
+	STDMETHOD(SetCooperativeLevel)(THIS_ HWND hwnd, DWORD dwLevel) PURE;
 	// clang-format on
 };
 
@@ -107,3 +96,32 @@ DECLARE_INTERFACE_(IDirectSound, IUnknown)
 #define DSERR_INVALIDPARAM 0x80070057
 #define DSERR_ALLOCATED MAKE_DSHRESULT(10)
 #define DSERR_CONTROLUNAVAIL MAKE_DSHRESULT(30)
+
+struct DirectSoundBuffer : public IDirectSoundBuffer {
+public:
+	METHOD HRESULT QueryInterface(REFIID refiid, LPVOID *lpvoid);
+	METHOD ULONG AddRef();
+	METHOD ULONG Release();
+	BOOL GetStatus(LPDWORD pdwStatus);
+	HRESULT Lock(DWORD dwOffset, DWORD dwBytes, LPVOID *ppvAudioPtr1, LPDWORD pdwAudioBytes1,
+	    LPVOID *ppvAudioPtr2, LPDWORD pdwAudioBytes2, DWORD dwFlags);
+	HRESULT Play(DWORD dwReserved1, DWORD dwPriority, DWORD dwFlags);
+	HRESULT SetFormat(LPCWAVEFORMATEX pcfxFormat);
+	HRESULT SetVolume(LONG lVolume);
+	HRESULT SetPan(LONG lPan);
+	HRESULT Stop();
+	HRESULT Unlock(LPVOID pvAudioPtr1, DWORD dwAudioBytes1, LPVOID pvAudioPtr2, DWORD dwAudioBytes2);
+	HRESULT Restore();
+	virtual ~DirectSoundBuffer() {};
+};
+
+class DirectSound : public IDirectSound {
+public:
+	METHOD HRESULT QueryInterface(REFIID refiid, LPVOID *lpvoid);
+	METHOD ULONG AddRef();
+	METHOD ULONG Release();
+	METHOD HRESULT CreateSoundBuffer(LPCDSBUFFERDESC pcDSBufferDesc, LPDIRECTSOUNDBUFFER *ppDSBuffer, LPUNKNOWN pUnkOute);
+	METHOD HRESULT GetCaps(LPDSCAPS pDSCaps);
+	METHOD HRESULT DuplicateSoundBuffer(LPDIRECTSOUNDBUFFER pDSBufferOriginal, LPDIRECTSOUNDBUFFER *ppDSBufferDuplicate);
+	METHOD HRESULT SetCooperativeLevel(HWND hwnd, DWORD dwLevel);
+};

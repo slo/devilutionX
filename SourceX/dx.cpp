@@ -33,8 +33,6 @@ bool surface_dirty;
 // DirectDraw COM interface stub implementations
 //
 
-#define METHOD virtual __stdcall
-
 class StubSurface : public IDirectDrawSurface {
 	METHOD HRESULT QueryInterface(REFIID refiid, LPVOID *lpvoid)
 	{
